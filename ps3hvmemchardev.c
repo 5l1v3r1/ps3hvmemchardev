@@ -11,11 +11,11 @@
  *
  */
 
-#include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
-#include <asm/uaccess.h>	/* for put_user */
+
+#include <asm/uaccess.h>  /* for put_user */
 
 /*  
  *  Prototypes - this would normally go in a .h file
@@ -34,6 +34,11 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 static int Major;		/* Major number assigned to our device driver */
 static int Device_Open = 0;	/* Is device open?  
 				 * Used to prevent multiple access to device */
+
+/*
+struct class * myclass;
+*/
+
 char *kbuffer;
 
 static struct file_operations fops = {
@@ -66,6 +71,9 @@ volatile long lv1_peek(unsigned long real_addr) {
 
 int init_module()
 {
+	/*
+	struct device *err_dev;
+	*/
         Major = register_chrdev(0, DEVICE_NAME, &fops);
 
 	if (Major < 0) {
@@ -73,12 +81,18 @@ int init_module()
 	  return Major;
 	}
 
-	printk(KERN_INFO "I was assigned major number %d. To talk to\n", Major);
-	printk(KERN_INFO "the driver, create a dev file with\n");
-	printk(KERN_INFO "'mknod /dev/%s c %d 0'.\n", DEVICE_NAME, Major);
-	printk(KERN_INFO "Try various minor numbers. Try to cat and echo to\n");
-	printk(KERN_INFO "the device file.\n");
-	printk(KERN_INFO "Remove the device file and module when done.\n");
+	/*myclass = class_create(THIS_MODULE,DEVICE_NAME);
+        err_dev = device_create(myclass, NULL, MKDEV(Major,0),NULL,DEVICE_NAME);
+	*/
+
+	
+	printk(KERN_INFO "%s: I was assigned major number %d. To talk to\n", DEVICE_NAME  ,Major);
+	printk(KERN_INFO "%s: the driver, create a dev file with\n", DEVICE_NAME );
+	printk(KERN_INFO "%s: 'mknod /dev/%s c %d 0'.\n", DEVICE_NAME,DEVICE_NAME, Major);
+	printk(KERN_INFO "%s: Try various minor numbers. Try to cat and echo to\n", DEVICE_NAME );
+	printk(KERN_INFO "%s: the device file.\n", DEVICE_NAME );
+	printk(KERN_INFO "%s: Remove the device file and module when done.\n", DEVICE_NAME );
+	
 
 	return SUCCESS;
 }
@@ -92,6 +106,12 @@ void cleanup_module()
 	/* 
 	 * Unregister the device 
 	 */
+
+	/*
+	device_destroy(myclass,MKDEV(Major,0));
+        class_unregister(myclass);
+        class_destroy(myclass);
+	*/
 	unregister_chrdev(Major, DEVICE_NAME);
 	printk(KERN_ALERT "unregister_chrdev: %s\n", DEVICE_NAME);
 }
@@ -146,11 +166,11 @@ static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
 
 	long i;
 	long loffset = (long)*offset;
-
-	/* printk(KERN_INFO "ps3hvmem (/dev/%s) called (offset 0x%p - 0x%p) "
-      "count %d\n", DEVICE_NAME,
-      (void *)offset, (void *)(offset + lenght), lenght);
-        */
+	void * vend = (offset + length);
+	void * voffset = offset;
+	
+	printk(KERN_INFO "ps3hvmem (/dev/%s) called (offset 0x%p - 0x%p) count %d\n", DEVICE_NAME, voffset, vend , (int) length);
+        
 
 	int bytes_read = 0;
 	for(i = loffset; i < loffset + length; i += sizeof(long)) {
